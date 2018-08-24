@@ -408,6 +408,29 @@ def handle_postback(event):
     elif event.postback.data == 'date_postback':
         line_bot_api.reply_message(
             event.reply_token, TextSendMessage(text=event.postback.params['date']))
+    elif data['action'][0] == 'search_weather_stations':
+        url = 'http://52.183.94.1:8001/?backend=CWB&get=stations&q={"lat":%s,"lng":%s,"max_distance":7}' % (data['lat'][0], data['lng'][0])
+        r = requests.get(url)
+        stations = r.json()
+
+        columns = []
+
+        for station in stations:
+            text = """地址：%s
+距離：%s km""" % (station['address'], station['distance_km'])
+
+            actions = [ PostbackTemplateAction(label='訂閱', data='action=subscribe_weather_station&station_source=%s&station_id=%s&station_name=%s&user_lat=%s&user_lng=%s' % (station['source'], station['station_id'], station['station_name'], data['lat'][0], data['lng'][0])),
+    		  ]
+
+            columns.append(
+                CarouselColumn(title='%s - %s' % (weather_station_dict[station['source']], station['station_name']),
+                               text=text,
+                               actions=actions)
+            )
+
+        template_message = TemplateSendMessage(
+            alt_text='Station List', template=CarouselTemplate(columns=columns))
+        line_bot_api.reply_message(event.reply_token, template_message)
 
 
 @handler.add(BeaconEvent)
