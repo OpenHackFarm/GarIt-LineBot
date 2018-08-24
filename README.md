@@ -1,14 +1,12 @@
-# Flask KitchenSink
-
-Sample bot using [Flask](http://flask.pocoo.org/)
+# GarIt LineBot
 
 ## Getting started
 
 ```
-$ export LINE_CHANNEL_SECRET=YOUR_LINE_CHANNEL_SECRET
-$ export LINE_CHANNEL_ACCESS_TOKEN=YOUR_LINE_CHANNEL_ACCESS_TOKEN
-
 $ pip install -r requirements.txt
+
+$ cp config.py.sample config.py
+$ vi config.py
 
 $ python app.py
 ```
