@@ -22,6 +22,8 @@ from argparse import ArgumentParser
 from urllib.parse import parse_qs
 import requests
 import pymysql
+from dateutil import parser
+import datetime
 
 from flask import Flask, request, abort
 
@@ -45,7 +47,7 @@ from linebot.models import (
     FlexSendMessage, BubbleContainer, ImageComponent, BoxComponent,
     TextComponent, SpacerComponent, IconComponent, ButtonComponent,
     SeparatorComponent, QuickReply, QuickReplyButton,
-    PostbackTemplateAction, ImageSendMessage
+    PostbackTemplateAction, ImageSendMessage, URITemplateAction
 )
 
 from config import *
@@ -59,6 +61,16 @@ static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 
 weather_station_dict = {
     'CWB': '中央氣象局',
+}
+
+week_day_dict = {
+    0 : '日',
+    1 : '一',
+    2 : '二',
+    3 : '三',
+    4 : '四',
+    5 : '五',
+    6 : '六',
 }
 
 
@@ -440,6 +452,7 @@ def handle_postback(event):
 距離：%s km""" % (station['address'], station['distance_km'])
 
             actions = [ PostbackTemplateAction(label='即時天氣', data='action=get_weather_current&station_source=%s&station_id=%s&station_name=%s&user_lat=%s&user_lng=%s' % (station['source'], station['station_id'], station['station_name'], data['lat'][0], data['lng'][0])),
+                        PostbackTemplateAction(label='一週預報', data='action=forecast&lat=%s&lng=%s' % (data['lat'][0], data['lng'][0])),
                         PostbackTemplateAction(label='訂閱', data='action=subscribe_weather_station&station_source=%s&station_id=%s&station_name=%s&station_city=%s&user_lat=%s&user_lng=%s' % (station['source'], station['station_id'], station['station_name'], station['city'], data['lat'][0], data['lng'][0]))
     		  ]
 
@@ -487,6 +500,29 @@ def handle_postback(event):
             text = '此氣象站無回應'
 
         line_bot_api.reply_message(event.reply_token, TextMessage(text=text))
+    elif data['action'][0] == 'forecast':
+        url = 'http://weather-api.openhackfarm.tw/?backend=ForecastIO&get=forecast&key=3d63fa0b4d55f3be7f594fcfad9a2e06&q={"lat":%s,"lng":%s}' % (data['lat'][0], data['lng'][0])
+        r = requests.get(url)
+        json_data = r.json()
+
+        text = ''
+        columns = []
+        for i in range(5):
+            dt = parser.parse(json_data[i]['datetime']) + datetime.timedelta(hours=8)
+
+            columns.append(
+                CarouselColumn(title='%s (%s)' % (dt.strftime('%-m/%-d'), week_day_dict[int(dt.strftime('%w'))]),
+                               text="""天氣狀況：%s
+氣溫：%d
+降雨機率：%d%%""" % (json_data[i]['condition'], round((json_data[i]['min_temperature_c'] + json_data[i]['max_temperature_c']) / 2), json_data[i]['PoP']),
+                               actions=[
+                                   URITemplateAction(label='中央氣象局', uri='https://www.cwb.gov.tw/m/f/town368/6300500.php'),
+                               ]
+            ))
+
+        template_message = TemplateSendMessage(
+            alt_text='Forecast', template=CarouselTemplate(columns=columns))
+        line_bot_api.reply_message(event.reply_token, template_message)
     elif data['action'][0] == 'subscribe_weather_station':
         conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_DB, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
         c = conn.cursor()
