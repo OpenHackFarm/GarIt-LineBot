@@ -112,215 +112,7 @@ def callback():
 def handle_text_message(event):
     text = event.message.text
 
-    if text == 'profile':
-        if isinstance(event.source, SourceUser):
-            profile = line_bot_api.get_profile(event.source.user_id)
-            line_bot_api.reply_message(
-                event.reply_token, [
-                    TextSendMessage(text='Display name: ' + profile.display_name),
-                    TextSendMessage(text='Status message: ' + profile.status_message)
-                ]
-            )
-        else:
-            line_bot_api.reply_message(
-                event.reply_token,
-                TextSendMessage(text="Bot can't use profile API without user ID"))
-    elif text == 'bye':
-        if isinstance(event.source, SourceGroup):
-            line_bot_api.reply_message(
-                event.reply_token, TextSendMessage(text='Leaving group'))
-            line_bot_api.leave_group(event.source.group_id)
-        elif isinstance(event.source, SourceRoom):
-            line_bot_api.reply_message(
-                event.reply_token, TextSendMessage(text='Leaving group'))
-            line_bot_api.leave_room(event.source.room_id)
-        else:
-            line_bot_api.reply_message(
-                event.reply_token,
-                TextSendMessage(text="Bot can't leave from 1:1 chat"))
-    elif text == 'confirm':
-        confirm_template = ConfirmTemplate(text='Do it?', actions=[
-            MessageAction(label='Yes', text='Yes!'),
-            MessageAction(label='No', text='No!'),
-        ])
-        template_message = TemplateSendMessage(
-            alt_text='Confirm alt text', template=confirm_template)
-        line_bot_api.reply_message(event.reply_token, template_message)
-    elif text == 'buttons':
-        buttons_template = ButtonsTemplate(
-            title='My buttons sample', text='Hello, my buttons', actions=[
-                URIAction(label='Go to line.me', uri='https://line.me'),
-                PostbackAction(label='ping', data='ping'),
-                PostbackAction(label='ping with text', data='ping', text='ping'),
-                MessageAction(label='Translate Rice', text='米')
-            ])
-        template_message = TemplateSendMessage(
-            alt_text='Buttons alt text', template=buttons_template)
-        line_bot_api.reply_message(event.reply_token, template_message)
-    elif text == 'carousel':
-        carousel_template = CarouselTemplate(columns=[
-            CarouselColumn(text='hoge1', title='fuga1', actions=[
-                URIAction(label='Go to line.me', uri='https://line.me'),
-                PostbackAction(label='ping', data='ping')
-            ]),
-            CarouselColumn(text='hoge2', title='fuga2', actions=[
-                PostbackAction(label='ping with text', data='ping', text='ping'),
-                MessageAction(label='Translate Rice', text='米')
-            ]),
-        ])
-        template_message = TemplateSendMessage(
-            alt_text='Carousel alt text', template=carousel_template)
-        line_bot_api.reply_message(event.reply_token, template_message)
-    elif text == 'image_carousel':
-        image_carousel_template = ImageCarouselTemplate(columns=[
-            ImageCarouselColumn(image_url='https://via.placeholder.com/1024x1024',
-                                action=DatetimePickerAction(label='datetime',
-                                                            data='datetime_postback',
-                                                            mode='datetime')),
-            ImageCarouselColumn(image_url='https://via.placeholder.com/1024x1024',
-                                action=DatetimePickerAction(label='date',
-                                                            data='date_postback',
-                                                            mode='date'))
-        ])
-        template_message = TemplateSendMessage(
-            alt_text='ImageCarousel alt text', template=image_carousel_template)
-        line_bot_api.reply_message(event.reply_token, template_message)
-    elif text == 'imagemap':
-        pass
-    elif text == 'flex':
-        bubble = BubbleContainer(
-            direction='ltr',
-            hero=ImageComponent(
-                url='https://example.com/cafe.jpg',
-                size='full',
-                aspect_ratio='20:13',
-                aspect_mode='cover',
-                action=URIAction(uri='http://example.com', label='label')
-            ),
-            body=BoxComponent(
-                layout='vertical',
-                contents=[
-                    # title
-                    TextComponent(text='Brown Cafe', weight='bold', size='xl'),
-                    # review
-                    BoxComponent(
-                        layout='baseline',
-                        margin='md',
-                        contents=[
-                            IconComponent(size='sm', url='https://example.com/gold_star.png'),
-                            IconComponent(size='sm', url='https://example.com/grey_star.png'),
-                            IconComponent(size='sm', url='https://example.com/gold_star.png'),
-                            IconComponent(size='sm', url='https://example.com/gold_star.png'),
-                            IconComponent(size='sm', url='https://example.com/grey_star.png'),
-                            TextComponent(text='4.0', size='sm', color='#999999', margin='md',
-                                          flex=0)
-                        ]
-                    ),
-                    # info
-                    BoxComponent(
-                        layout='vertical',
-                        margin='lg',
-                        spacing='sm',
-                        contents=[
-                            BoxComponent(
-                                layout='baseline',
-                                spacing='sm',
-                                contents=[
-                                    TextComponent(
-                                        text='Place',
-                                        color='#aaaaaa',
-                                        size='sm',
-                                        flex=1
-                                    ),
-                                    TextComponent(
-                                        text='Shinjuku, Tokyo',
-                                        wrap=True,
-                                        color='#666666',
-                                        size='sm',
-                                        flex=5
-                                    )
-                                ],
-                            ),
-                            BoxComponent(
-                                layout='baseline',
-                                spacing='sm',
-                                contents=[
-                                    TextComponent(
-                                        text='Time',
-                                        color='#aaaaaa',
-                                        size='sm',
-                                        flex=1
-                                    ),
-                                    TextComponent(
-                                        text="10:00 - 23:00",
-                                        wrap=True,
-                                        color='#666666',
-                                        size='sm',
-                                        flex=5,
-                                    ),
-                                ],
-                            ),
-                        ],
-                    )
-                ],
-            ),
-            footer=BoxComponent(
-                layout='vertical',
-                spacing='sm',
-                contents=[
-                    # callAction, separator, websiteAction
-                    SpacerComponent(size='sm'),
-                    # callAction
-                    ButtonComponent(
-                        style='link',
-                        height='sm',
-                        action=URIAction(label='CALL', uri='tel:000000'),
-                    ),
-                    # separator
-                    SeparatorComponent(),
-                    # websiteAction
-                    ButtonComponent(
-                        style='link',
-                        height='sm',
-                        action=URIAction(label='WEBSITE', uri="https://example.com")
-                    )
-                ]
-            ),
-        )
-        message = FlexSendMessage(alt_text="hello", contents=bubble)
-        line_bot_api.reply_message(
-            event.reply_token,
-            message
-        )
-    elif text == 'quick_reply':
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(
-                text='Quick reply',
-                quick_reply=QuickReply(
-                    items=[
-                        QuickReplyButton(
-                            action=PostbackAction(label="label1", data="data1")
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(label="label2", text="text2")
-                        ),
-                        QuickReplyButton(
-                            action=DatetimePickerAction(label="label3",
-                                                        data="data3",
-                                                        mode="date")
-                        ),
-                        QuickReplyButton(
-                            action=CameraAction(label="label4")
-                        ),
-                        QuickReplyButton(
-                            action=CameraRollAction(label="label5")
-                        ),
-                        QuickReplyButton(
-                            action=LocationAction(label="label6")
-                        ),
-                    ])))
-    elif text == 'Weather':
+    if text == 'Weather':
         conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_DB, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
         c = conn.cursor()
         c.execute("SELECT * FROM user_weather_locations WHERE line_id = '%s'" % event.source.user_id)
@@ -374,11 +166,60 @@ def handle_text_message(event):
                     label='建立農場', uri='https://www.openhackfarm.tw/onsen/field_add.html?token=' + event.source.user_id),
                 URITemplateAction(
                     label='種植新作物', uri='https://www.openhackfarm.tw/onsen/planting_add.html?token=' + event.source.user_id),
-                MessageTemplateAction(label='我的作物', text='GrowthDuration'),
+                MessageTemplateAction(label='我的作物', text='Plantings'),
             ])
         template_message = TemplateSendMessage(
             alt_text='Farm Management', template=buttons_template)
         line_bot_api.reply_message(event.reply_token, template_message)
+    elif text == 'Plantings':
+        conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_DB, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+        c = conn.cursor()
+        c.execute("SELECT plantings.*, fields.* FROM plantings, fields WHERE plantings.line_id = '%s' AND crop_name IS NOT NULL AND plantings.end_date IS NULL AND plantings.deleted = 0 AND plantings.field_id = fields.uuid" % event.source.user_id)
+        rows = c.fetchall()
+        print(rows)
+        print(len(rows))
+
+        if len(rows) is 0:
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text='請新增作物'))
+        else:
+            columns = []
+
+            # TODO : Line 一次最多只能回傳 10 筆資料，需 loop and push
+            for row in rows[0:10]:
+                # TODO: Calculate GDD with nearby weather station
+                url = 'https://api.openhackfarm.tw/testing/demo/gdd?crop=%s&start_date=%s' % (row['crop'] if row['crop'] else '', row['start_date'])
+                r = requests.get(url)
+                json_data = r.json()
+
+                title = '%s' % row['crop_name']
+                if row['crop_variety']:
+                    title = title + ' - %s' % row['crop_variety']
+                if row['field_name']:
+                    title = title + ' (%s' % row['field_name']
+                    if row['bed_no']:
+                        title = title + ' - %s' % row['bed_no']
+                    title = title + ')'
+
+                text = """種植日期：%s
+生長天數：%d
+累積溫度：%.2f""" % (row['start_date'].strftime('%Y/%m/%d'), json_data['days'], json_data['cumulative'])
+
+                actions = [
+			    URITemplateAction(label='新增記錄', uri='http://www.openhackfarm.tw/onsen/activity_add.html?planting_id=%s' % row['uuid']),
+                            PostbackTemplateAction(label='查看報表', data='action=planting_report&uuid=%s' % row['uuid']),
+                            PostbackTemplateAction(label='結束種植', data='action=planting_end&uuid=%s' % row['uuid']),
+			  ]
+
+                columns.append(
+                    CarouselColumn(title=title,
+                                   text=text,
+                                   actions=actions)
+                )
+
+            carousel_template = CarouselTemplate(columns=columns)
+            template_message = TemplateSendMessage(
+                alt_text='Plantings', template=carousel_template)
+            line_bot_api.reply_message(event.reply_token, template_message)
     elif text == 'qrcode':
         image_message = ImageSendMessage(
             original_content_url='https://qr-official.line.me/L/jMcenk9cBa.png',
@@ -490,16 +331,7 @@ def handle_leave():
 def handle_postback(event):
     data = parse_qs(event.postback.data)
 
-    if event.postback.data == 'ping':
-        line_bot_api.reply_message(
-            event.reply_token, TextSendMessage(text='pong'))
-    elif event.postback.data == 'datetime_postback':
-        line_bot_api.reply_message(
-            event.reply_token, TextSendMessage(text=event.postback.params['datetime']))
-    elif event.postback.data == 'date_postback':
-        line_bot_api.reply_message(
-            event.reply_token, TextSendMessage(text=event.postback.params['date']))
-    elif data['action'][0] == 'search_weather_stations':
+    if data['action'][0] == 'search_weather_stations':
         url = 'http://52.183.94.1:8001/?backend=CWB&get=stations&q={"lat":%s,"lng":%s,"max_distance":7}' % (data['lat'][0], data['lng'][0])
         r = requests.get(url)
         stations = r.json()
