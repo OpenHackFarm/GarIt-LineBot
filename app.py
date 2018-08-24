@@ -151,7 +151,8 @@ def handle_text_message(event):
                     CarouselColumn(title='%s - %s (時間：%s)' % (row['station_source'], row['station_name'], dt.strftime('%H:%M')),
                                    text=text,
                                    actions=[
-                                       PostbackTemplateAction(label='一週預報', data='action=forecast&lat=%s&lng=%s' % (row['user_lat'], row['user_lng']))
+                                       PostbackTemplateAction(label='一週預報', data='action=forecast&lat=%s&lng=%s' % (row['user_lat'], row['user_lng'])),
+                                       PostbackTemplateAction(label='在地農民曆', data='action=crops_suggestion&station_id=%s&station_name=%s' % (row['station_id'], row['station_name']))
                                    ]
                 ))
 
@@ -424,6 +425,32 @@ def handle_postback(event):
         conn.close()
 
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text='訂閱成功！可由下方選單內點選觀看即時天氣。'))
+    elif data['action'][0] == 'crops_suggestion':
+        url = 'https://api.openhackfarm.tw/testing/crops/suggestions/%s_%s' % (data['station_id'][0], data['station_name'][0])
+        r = requests.get(url)
+        json_data = r.json()
+
+        suggestions_1 = []
+        suggestions_2 = []
+        suggestions_3 = []
+        for c in json_data:
+            if c['percent'] >= 90:
+                if c['rain_alert'] is True:
+                    suggestions_2.append(c['name'].split(',')[0] + '(!)')
+                else:
+                    suggestions_1.append(c['name'].split(',')[0])
+            if 80 <= c['percent'] < 90:
+                if c['rain_alert'] is True:
+                    suggestions_3.append(c['name'].split(',')[0] + '(!)')
+                else:
+                    suggestions_3.append(c['name'].split(',')[0])
+
+        text = """適種作物：
+    ● %s
+
+    ○ %s""" %  (', '.join(suggestions_1), ', '.join(suggestions_2))
+
+        line_bot_api.reply_message(event.reply_token, TextMessage(text=text))
 
 
 @handler.add(BeaconEvent)
