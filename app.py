@@ -203,7 +203,24 @@ def handle_text_message(event):
 
                 text = """種植日期：%s
 生長天數：%d
-累積溫度：%.2f""" % (row['start_date'].strftime('%Y/%m/%d'), json_data['days'], json_data['cumulative'])
+Sensor：""" % (row['start_date'].strftime('%Y/%m/%d'), json_data['days'])
+
+                sensor_value = ''
+                if row['tmp_device_id']:
+                    s  = requests.get('https://api.openhackfarm.tw/iot/data/%s/latest' % row['tmp_device_id'])
+                    sensor_data = s.json()
+
+                    x = sensor_data[row['tmp_sensor_field']] - row['tmp_sensor_min']
+                    y = (row['tmp_sensor_max'] - row['tmp_sensor_min'])/4
+                    z = round(x/y)
+                    for i in range(0, z):
+                        sensor_value = sensor_value + '●'
+                    for i in range(0, 5-z):
+                        sensor_value = sensor_value + '○'
+                else:
+                    sensor_value = '- - -'
+
+                text = text + sensor_value
 
                 actions = [
 			    URITemplateAction(label='新增記錄', uri='http://www.openhackfarm.tw/onsen/activity_add.html?planting_id=%s' % row['uuid']),
