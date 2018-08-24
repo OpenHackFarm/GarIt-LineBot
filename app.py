@@ -44,7 +44,7 @@ from linebot.models import (
     FlexSendMessage, BubbleContainer, ImageComponent, BoxComponent,
     TextComponent, SpacerComponent, IconComponent, ButtonComponent,
     SeparatorComponent, QuickReply, QuickReplyButton,
-    PostbackTemplateAction
+    PostbackTemplateAction, ImageSendMessage
 )
 
 from config import *
@@ -307,6 +307,12 @@ def handle_text_message(event):
                             action=LocationAction(label="label6")
                         ),
                     ])))
+    elif text == 'qrcode':
+        image_message = ImageSendMessage(
+            original_content_url='https://qr-official.line.me/L/jMcenk9cBa.png',
+            preview_image_url='https://qr-official.line.me/L/jMcenk9cBa.png'
+        )
+        line_bot_api.reply_message(event.reply_token, image_message)
     else:
         line_bot_api.reply_message(
             event.reply_token, TextSendMessage(text=event.message.text))
