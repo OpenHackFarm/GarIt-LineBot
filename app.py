@@ -307,12 +307,16 @@ def handle_text_message(event):
 
 @handler.add(MessageEvent, message=LocationMessage)
 def handle_location_message(event):
+    buttons_template = ButtonsTemplate(
+        title='地理位置搜尋', text='請問您要？', actions=[
+            PostbackTemplateAction(label='搜尋氣象站', data='action=search_weather_stations&lat=%s&lng=%s' % (event.
+message.latitude, event.message.longitude)),
+        ])
+    template_message = TemplateSendMessage(
+        alt_text='Location Menu', template=buttons_template)
     line_bot_api.reply_message(
         event.reply_token,
-        LocationSendMessage(
-            title=event.message.title, address=event.message.address,
-            latitude=event.message.latitude, longitude=event.message.longitude
-        )
+        template_message
     )
 
 
