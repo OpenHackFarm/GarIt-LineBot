@@ -207,8 +207,9 @@ def handle_text_message(event):
 
                 actions = [
 			    URITemplateAction(label='新增記錄', uri='http://www.openhackfarm.tw/onsen/activity_add.html?planting_id=%s' % row['uuid']),
-                            PostbackTemplateAction(label='查看報表', data='action=planting_report&uuid=%s' % row['uuid']),
-                            PostbackTemplateAction(label='結束種植', data='action=planting_end&uuid=%s' % row['uuid']),
+                            PostbackTemplateAction(label='查看報表', data='action=planting_detail&uuid=%s' % row['uuid']),
+                            PostbackTemplateAction(label='最近影像', data='action=last_planting_image&uuid=%s' % row['uuid'])
+#                            PostbackTemplateAction(label='結束種植', data='action=planting_end&uuid=%s' % row['uuid']),
 			  ]
 
                 columns.append(
@@ -451,6 +452,83 @@ def handle_postback(event):
     ○ %s""" %  (', '.join(suggestions_1), ', '.join(suggestions_2))
 
         line_bot_api.reply_message(event.reply_token, TextMessage(text=text))
+    elif data['action'][0] == 'planting_detail':
+        conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_DB, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+        c = conn.cursor()
+        c.execute("SELECT plantings.*, fields.* FROM plantings, fields WHERE plantings.line_id = '%s' AND plantings.uuid = '%s' AND plantings.field_id = fields.uuid" % (event.source.user_id, data['uuid'][0]))
+        planting = c.fetchone()
+        print(planting)
+        c.execute("SELECT * FROM activities WHERE planting_uuid = '%s' ORDER BY date" % data['uuid'][0])
+        activities = c.fetchall()
+        print(activities)
+
+        r = requests.get('https://api.openhackfarm.tw/testing/demo/gdd?crop=%s&start_date=%s' % (planting['crop'], planting['start_date']))
+        json_data = r.json()
+
+        text = """%s %s
+- - - - - - - - - - - - - - - -
+田區：%s""" % (planting['crop_name'], '- %s' % planting['crop_variety'] if planting['crop_variety'] else '', planting['field_name'])
+
+        # 植床編號
+        if planting['bed_no']:
+            text = text + ' - %s' % planting['bed_no']
+        text = text + '\n'
+
+        # 種植時間
+        text = text + '日期：%s' % planting['start_date'].strftime('%Y/%m/%d')
+        if planting['end_date']:
+            text = text + ' ~ %s' % planting['end_date']
+        text = text + '\n'
+
+        # 累積溫度
+        text = text + '生長日數：%d 天 (%.2f ℃ )' % (json_data['days'], json_data['cumulative'])
+        text = text + '\n\n'
+
+        # 成長記錄
+        outcome = 0
+        income = 0
+        text = text + '成長記錄：\n'
+        for a in activities:
+            delta = a['date'] - planting['start_date']
+            text = text + '    %s (%s) - ' % (a['date'].strftime('%m/%d'), delta.days)
+            if a['action'] and a['comment']:
+                text = text + '%s (%s)' % (a['action'], a['comment'])
+            elif a['action']:
+                text = text + '%s' % (a['action'])
+            elif a['comment']:
+                text = text + '(%s)' % (a['comment'])
+            text = text + '\n'
+
+            if a['outcome']:
+                outcome = outcome + a['outcome']
+            if a['income']:
+                income = income + a['income']
+
+        text = text + '- - - - - - - - - - - - - - - -\n'
+
+        text = text + '支出：\n           $%d\n' % outcome
+        text = text + '收入：\n           $%d' % income
+
+        line_bot_api.reply_message(event.reply_token, TextMessage(text=text))
+    elif data['action'][0] == 'last_planting_image':
+        url = 'https://api.openhackfarm.tw/planting/resume/%s' % data['uuid'][0]
+        r = requests.get(url)
+        json_data = r.json()
+
+        if json_data['activities']:
+            last_image_url = json_data['activities'][-1]['image']
+            last_image_url = last_image_url.replace('https', 'http').replace('http', 'https')
+            original_image_url = '/'.join(last_image_url.split('/')[0:-1]) + '/500x500/' + last_image_url.split('/')[-1]
+            preview_image_url = '/'.join(last_image_url.split('/')[0:-1]) + '/300x300/' + last_image_url.split('/')[-1]
+
+            image_message = ImageSendMessage(
+                original_content_url=original_image_url,
+                preview_image_url=preview_image_url
+            )
+            line_bot_api.reply_message(event.reply_token, image_message)
+        else:
+            line_bot_api.reply_message(
+                event.reply_token, TextSendMessage(text='無記錄'))
 
 
 @handler.add(BeaconEvent)
