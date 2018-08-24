@@ -47,7 +47,7 @@ from linebot.models import (
     FlexSendMessage, BubbleContainer, ImageComponent, BoxComponent,
     TextComponent, SpacerComponent, IconComponent, ButtonComponent,
     SeparatorComponent, QuickReply, QuickReplyButton,
-    PostbackTemplateAction, ImageSendMessage, URITemplateAction
+    PostbackTemplateAction, ImageSendMessage, URITemplateAction, MessageTemplateAction
 )
 
 from config import *
@@ -367,6 +367,18 @@ def handle_text_message(event):
             template_message = TemplateSendMessage(
                 alt_text='Weather', template=carousel_template)
             line_bot_api.reply_message(event.reply_token, template_message)
+    elif text == 'Farm':
+        buttons_template = ButtonsTemplate(
+            title='農場管理', text='管理農場與作物生長記錄', actions=[
+                URITemplateAction(
+                    label='建立農場', uri='https://www.openhackfarm.tw/onsen/field_add.html?token=' + event.source.user_id),
+                URITemplateAction(
+                    label='種植新作物', uri='https://www.openhackfarm.tw/onsen/planting_add.html?token=' + event.source.user_id),
+                MessageTemplateAction(label='我的作物', text='GrowthDuration'),
+            ])
+        template_message = TemplateSendMessage(
+            alt_text='Farm Management', template=buttons_template)
+        line_bot_api.reply_message(event.reply_token, template_message)
     elif text == 'qrcode':
         image_message = ImageSendMessage(
             original_content_url='https://qr-official.line.me/L/jMcenk9cBa.png',
