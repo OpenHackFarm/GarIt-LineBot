@@ -3,7 +3,9 @@
 ## Getting started
 
 ```
-$ pip install -r requirements.txt
+$ virtualenv --no-site-packages --python=python3.4 env
+$ . env/bin/activate
+$ pip3 install -r requirements.txt
 
 $ cp config.py.sample config.py
 $ vi config.py
