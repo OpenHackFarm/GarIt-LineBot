@@ -19,6 +19,8 @@ import os
 import sys
 import tempfile
 from argparse import ArgumentParser
+from urllib.parse import parse_qs
+import requests
 
 from flask import Flask, request, abort
 
@@ -53,6 +55,10 @@ line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
+
+weather_station_dict = {
+    'CWB': '中央氣象局',
+}
 
 
 # function for create tmp dir for download content
@@ -404,6 +410,8 @@ def handle_leave():
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
+    data = parse_qs(event.postback.data)
+
     if event.postback.data == 'ping':
         line_bot_api.reply_message(
             event.reply_token, TextSendMessage(text='pong'))
