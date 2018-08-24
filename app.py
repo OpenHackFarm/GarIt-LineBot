@@ -320,6 +320,53 @@ def handle_text_message(event):
                             action=LocationAction(label="label6")
                         ),
                     ])))
+    elif text == 'Weather':
+        conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_DB, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+        c = conn.cursor()
+        c.execute("SELECT * FROM user_weather_locations WHERE line_id = '%s'" % event.source.user_id)
+        rows = c.fetchall()
+
+        if len(rows) is 0:
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text='您好，初次使用，請參考如何訂閱氣象站，謝謝。\nhttps://i.imgur.com/gYMVUia.png'))
+        else:
+            columns = []
+
+            for row in rows:
+                if row['station_source'] == 'CWB':
+                    url = 'http://52.183.94.1:8001/?backend=%s&get=current&q={"name":"%s"}' % (row['station_source'], row['station_name'])
+                else:
+                    #TODO: complete weather proxy
+                    continue
+
+                r = requests.get(url)
+                json_data = r.json()
+
+                text = """溫度：%s ℃
+溼度：%s %%
+""" % (json_data['temperature_c'], json_data['humidity'])
+
+                if 'rain_24hr_mm' in json_data:
+                    text = text + '降雨：%s mm\n' % json_data['rain_24hr_mm']
+                elif 'rain' in json_data:
+                    text = text + '降雨：%s mm\n' % json_data['rain']
+
+                if 'datetime' in json_data:
+                    dt = parser.parse(json_data['datetime'])
+                elif 'time' in json_data:
+                    dt = parser.parse(json_data['time'])
+
+                columns.append(
+                    CarouselColumn(title='%s - %s (時間：%s)' % (row['station_source'], row['station_name'], dt.strftime('%H:%M')),
+                                   text=text,
+                                   actions=[
+                                       PostbackTemplateAction(label='一週預報', data='action=forecast&lat=%s&lng=%s' % (row['user_lat'], row['user_lng']))
+                                   ]
+                ))
+
+            carousel_template = CarouselTemplate(columns=columns)
+            template_message = TemplateSendMessage(
+                alt_text='Weather', template=carousel_template)
+            line_bot_api.reply_message(event.reply_token, template_message)
     elif text == 'qrcode':
         image_message = ImageSendMessage(
             original_content_url='https://qr-official.line.me/L/jMcenk9cBa.png',
