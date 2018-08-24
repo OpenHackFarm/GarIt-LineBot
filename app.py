@@ -21,6 +21,7 @@ import tempfile
 from argparse import ArgumentParser
 from urllib.parse import parse_qs
 import requests
+import pymysql
 
 from flask import Flask, request, abort
 
@@ -439,7 +440,7 @@ def handle_postback(event):
 距離：%s km""" % (station['address'], station['distance_km'])
 
             actions = [ PostbackTemplateAction(label='即時天氣', data='action=get_weather_current&station_source=%s&station_id=%s&station_name=%s&user_lat=%s&user_lng=%s' % (station['source'], station['station_id'], station['station_name'], data['lat'][0], data['lng'][0])),
-                        PostbackTemplateAction(label='訂閱', data='action=subscribe_weather_station&station_source=%s&station_id=%s&station_name=%s&user_lat=%s&user_lng=%s' % (station['source'], station['station_id'], station['station_name'], data['lat'][0], data['lng'][0]))
+                        PostbackTemplateAction(label='訂閱', data='action=subscribe_weather_station&station_source=%s&station_id=%s&station_name=%s&station_city=%s&user_lat=%s&user_lng=%s' % (station['source'], station['station_id'], station['station_name'], station['city'], data['lat'][0], data['lng'][0]))
     		  ]
 
             columns.append(
@@ -486,6 +487,16 @@ def handle_postback(event):
             text = '此氣象站無回應'
 
         line_bot_api.reply_message(event.reply_token, TextMessage(text=text))
+    elif data['action'][0] == 'subscribe_weather_station':
+        conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_DB, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+        c = conn.cursor()
+
+        c.execute("INSERT INTO user_weather_locations (line_id, station_source, station_id, station_name, station_city, user_lat, user_lng) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (event.source.user_id, data['station_source'][0], data['station_id'][0], data['station_name'][0], data['station_city'][0], data['user_lat'][0], data['user_lng'][0]))
+
+        conn.commit()
+        conn.close()
+
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text='訂閱成功！可由下方選單內點選觀看即時天氣。'))
 
 
 @handler.add(BeaconEvent)
