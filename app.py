@@ -228,6 +228,30 @@ def handle_text_message(event):
             preview_image_url='https://qr-official.line.me/L/jMcenk9cBa.png'
         )
         line_bot_api.reply_message(event.reply_token, image_message)
+    elif text == 'GarIt!':
+        conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_DB, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+        c = conn.cursor()
+        c.execute("SELECT DISTINCT(station_city) FROM user_weather_locations WHERE line_id = '%s'" % event.source.user_id)
+        rows = c.fetchall()
+        cities = [r['station_city'] for r in rows]
+        print(cities)
+
+        # url = 'https://api.openhackfarm.tw/special_weather/%s' % ','.join(cities)
+        url = 'https://api.openhackfarm.tw/special_weather'
+        r = requests.get(url)
+        json_data = r.json()
+
+        weather_specials = ''
+        if json_data['WeatherAlarm']:
+            for k, v in json_data['WeatherAlarm'][1].items():
+                weather_specials = weather_specials + '        - %s\n' % v[0]
+        else:
+            weather_specials = "    - - - - - -"
+
+        text = """天氣警特報：
+        %s""" %  (weather_specials.strip())
+
+        line_bot_api.reply_message(event.reply_token, TextMessage(text=text))
     else:
         line_bot_api.reply_message(
             event.reply_token, TextSendMessage(text=event.message.text))
