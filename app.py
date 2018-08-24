@@ -438,7 +438,8 @@ def handle_postback(event):
             text = """地址：%s
 距離：%s km""" % (station['address'], station['distance_km'])
 
-            actions = [ PostbackTemplateAction(label='訂閱', data='action=subscribe_weather_station&station_source=%s&station_id=%s&station_name=%s&user_lat=%s&user_lng=%s' % (station['source'], station['station_id'], station['station_name'], data['lat'][0], data['lng'][0])),
+            actions = [ PostbackTemplateAction(label='即時天氣', data='action=get_weather_current&station_source=%s&station_id=%s&station_name=%s&user_lat=%s&user_lng=%s' % (station['source'], station['station_id'], station['station_name'], data['lat'][0], data['lng'][0])),
+                        PostbackTemplateAction(label='訂閱', data='action=subscribe_weather_station&station_source=%s&station_id=%s&station_name=%s&user_lat=%s&user_lng=%s' % (station['source'], station['station_id'], station['station_name'], data['lat'][0], data['lng'][0]))
     		  ]
 
             columns.append(
@@ -450,6 +451,41 @@ def handle_postback(event):
         template_message = TemplateSendMessage(
             alt_text='Station List', template=CarouselTemplate(columns=columns))
         line_bot_api.reply_message(event.reply_token, template_message)
+    elif data['action'][0] == 'get_weather_current':
+        print(data)
+
+        station_source = data['station_source'][0]
+
+        if station_source == 'CWB':
+            url = 'http://52.183.94.1:8001/?backend=%s&get=current&q={"name":"%s"}' % (station_source, data['station_name'][0])
+        elif station_source == 'CWB_OA':
+            url = 'http://52.183.94.1:8001/?backend=%s&get=current&q={"id":"%s"}' % (row['station_source'], row['station_id'])
+        elif station_source == 'WU':
+            url = 'http://52.183.94.1:8001/?backend=%s&get=current&q={"id":"%s"}' % (row['station_source'], row['station_id'])
+        elif station_source == 'OHF':
+            url = 'https://api.openhackfarm.tw/testing/demo/davis/latest'
+
+        r = requests.get(url)
+        json_data = r.json()
+        print(json_data)
+
+        if json_data:
+            text = """%s
+    ----------------------------------------
+    溫度：%s ℃
+    溼度：%s %%
+    """ % (json_data['station_name'], json_data['temperature_c'], json_data['humidity'])
+
+            if 'rain_24hr_mm' in json_data:
+                text = text + '降雨：%s mm\n' % json_data['rain_24hr_mm']
+            elif 'rain' in json_data:
+                text = text + '降雨：%s mm\n' % json_data['rain']
+
+            text = text + '時間：%s' % json_data['datetime']
+        else:
+            text = '此氣象站無回應'
+
+        line_bot_api.reply_message(event.reply_token, TextMessage(text=text))
 
 
 @handler.add(BeaconEvent)
